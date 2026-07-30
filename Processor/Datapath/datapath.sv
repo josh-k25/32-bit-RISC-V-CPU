@@ -4,12 +4,14 @@ module datapath(
     input logic [31:0] instruction,
     input logic [31:0] readDataM,
 
-    input logic pcSourceE,
-    input logic aluSource,
-    input logic [1:0] resultSource,
-    input logic [1:0] immediateSource,
-    input logic registerWrite,
-    input logic [2:0] aluControl,
+    input logic aluSourceD,
+    input logic [1:0] resultSourceD,
+    input logic [1:0] immediateSourceD,
+    input logic registerWriteD,
+    input logic [2:0] aluControlD,
+    input logic memoryWriteD,
+    input logic branchD,
+    input logic jumpD,
 
     input logic stallF,
     input logic stallD,
@@ -21,7 +23,21 @@ module datapath(
     output logic [31:0] pc,
     output logic [31:0] aluResult,
     output logic [31:0] writeData,
-    output logic zero
+    output logic pcSourceE,
+    output logic zeroE,
+    output logic memoryWrite,
+    output logic [31:0] instructionD,
+
+    output logic [4:0] rs1D,
+    output logic [4:0] rs2D,
+    output logic [4:0] rs1E,
+    output logic [4:0] rs2E,
+    output logic [4:0] rdE,
+    output logic [4:0] rdM,
+    output logic [4:0] rdW,
+    output logic [1:0] resultSourceE,
+    output logic registerWriteM,
+    output logic registerWriteW
 );
 
 //Fetch internal signals:
@@ -31,28 +47,15 @@ logic [31:0] pcPlus4F;
 logic [31:0] pcNextF;
 
 //Decode internal signals:
-logic registerWriteD;
-logic [1:0] resultSourceD;
-logic memoryWriteD;
-logic jumpD;
-logic branchD;
-logic [2:0] aluControlD;
-logic aluSourceD;
-logic [1:0] immediateSourceD;
-
-logic [31:0] instructionD;
 logic [31:0] pcD;
 logic [31:0] pcPlus4D;
 logic [31:0] rd1D;
 logic [31:0] rd2D;
 logic [31:0] immExtD;
-logic [4:0] rs1D;
-logic [4:0] rs2D;
 logic [4:0] rdD;
 
 //Execute internal signals: 
 logic registerWriteE;
-logic [1:0] resultSourceE;
 logic memoryWriteE;
 logic jumpE;
 logic branchE;
@@ -65,35 +68,26 @@ logic [31:0] pcTargetE;
 logic [31:0] rd1E;
 logic [31:0] rd2E;
 logic [31:0] immExtE;
-logic [4:0] rs1E;
-logic [4:0] rs2E;
-logic [4:0] rdE;
 logic [31:0] writeDataE;
 
 logic [31:0] source1E;
 logic [31:0] source2E;
 logic [31:0] aluResultE;
 
-
 //Memory internal signals:
-logic registerWriteM;
 logic [1:0] resultSourceM;
-logic memorywriteM;
+logic memoryWriteM;
 
 logic [31:0] aluResultM;
 logic [31:0] writeDataM;
-logic [4:0] rdM;
 logic [31:0] pcPlus4M;
 
 //Write internal signals:
-logic [1:0] resultSourceW; 
+logic [1:0] resultSourceW;
 logic [31:0] aluResultW;
-logic [31:0] readDataW; 
-logic [31:0] pcPlus4OutputW; 
+logic [31:0] readDataW;
+logic [31:0] pcPlus4W;
 logic [31:0] resultW;
-logic [4:0] rdW;
-
-Use the stage-specific signals consistently:
 
 //Program counter path
 pcPlus4 pcPlus4Adder (
@@ -117,6 +111,7 @@ programCounter pcRegister (
 );
 
 assign pc = pcF;
+assign instructionF = instruction;
 
 //F to D pipeline register
 if_To_id F_To_D(
@@ -125,18 +120,23 @@ if_To_id F_To_D(
     pcF,
     pcPlus4F,
     stallD,
-    stallF,
+    flushD,
     instructionD,
     pcD,
     pcPlus4D
 );
 
+
 //register file and immediate extender
+assign rs1D = instructionD[19:15];
+assign rs2D = instructionD[24:20];
+assign rdD = instructionD[11:7];
+
 registerFile registerFile(
     clk, 
-    instructionD[19:15], 
-    instructionD[24:20], 
-    instructionD[11:7], 
+    rs1D, 
+    rs2D, 
+    rdW, 
     resultW,     
     registerWriteW, 
     rd1D, 
@@ -145,7 +145,7 @@ registerFile registerFile(
 
 immediateExtender immediateExtender(
     immediateSourceD, 
-    instruction[31:7], 
+    instructionD[31:7], 
     immExtD
 );
 
@@ -175,7 +175,7 @@ id_To_ex D_To_E(
     jumpE,
     resultSourceE,
     aluSourceE,
-    regWriteE,
+    registerWriteE,
     memoryWriteE,
     aluControlE,
 
@@ -225,7 +225,7 @@ alu alu(
     source1E,
     source2E,
     aluResultE,
-    zero
+    zeroE
 );
 
 //E to M pipeline register
@@ -249,14 +249,36 @@ ex_To_mem E_To_M(
     rdM,
     pcPlus4M
 );
+//M to W pipeline register
+assign memoryWrite = memoryWriteM;
+mem_To_wb M_To_W (
+    clk,
+    registerWriteM,
+    resultSourceM,
+    aluResultM,
+    readDataM,
+    rdM,
+    pcPlus4M,
+    registerWriteW,
+    resultSourceW,
+    aluResultW,
+    readDataW,
+    rdW,
+    pcPlus4W
+);
 
 //writeback mux 
 mux3To1 resultSourceMux(
     resultSourceW, 
     aluResultW, 
     readDataW, 
-    pcPlus4OutputW, 
+    pcPlus4W, 
     resultW
 );
+
+assign aluResult = aluResultM;
+assign writeData = writeDataM;
+
+assign pcSourceE = (branchE & zeroE) | jumpE;
 
 endmodule   

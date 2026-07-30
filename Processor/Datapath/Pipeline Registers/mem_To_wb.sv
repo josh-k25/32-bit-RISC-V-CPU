@@ -1,7 +1,7 @@
 module mem_To_wb(
     input logic clk,
     input logic registerWriteM,
-    input logic resultSourceM,
+    input logic [1:0] resultSourceM,
 
     input logic [31:0] aluResultM,
     input logic [31:0] readDataM,

@@ -46,7 +46,7 @@ always_ff @(posedge clk) begin
         aluSourceE <= 1'b0;
         registerWriteE <= 1'b0;
         memWriteE <= 1'b0;
-        aluControlE <= 3'b00;
+        aluControlE <= 3'b000;
     end
     else begin
 

@@ -14,7 +14,7 @@ output logic [1:0] resultSourceM,
 output logic memoryWriteM,
 
 output logic [31:0] aluResultM,
-output logic [31:0] writeDateM,
+output logic [31:0] writeDataM,
 output logic [4:0] registerDestinationM,
 output logic [31:0] pcPlus4M
 );
@@ -23,7 +23,11 @@ always_ff @(posedge clk) begin
 registerWriteM <= registerWriteE;
 resultSourceM <= resultSourceE;
 memoryWriteM <= memoryWriteE;
+
 aluResultM <= aluResultE;
+writeDataM <= writeDataE;
+registerDestinationM <= registerDestinationE;
+pcPlus4M <= pcPlus4E;
 
 end
 

@@ -12,7 +12,5 @@ always_ff @(posedge clk or posedge reset) begin
         pc <= 32'h00000000;
     else if (!stallF)
         pc <= pcNext;
-    else 
-        pc <= pcNext;
 end
 endmodule

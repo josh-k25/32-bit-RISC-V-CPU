@@ -1,7 +1,7 @@
 module datapath(
     input logic clk,
     input logic reset,
-    input logic [31:0] instruction,
+    input logic [31:0] instructionF,
     input logic [31:0] readDataM,
 
     input logic aluSourceD,
@@ -13,7 +13,7 @@ module datapath(
     input logic branchD,
     input logic jumpD,
 
-    input logic stallF,
+    input logic szetallF,
     input logic stallD,
     input logic flushD,
     input logic flushE,
@@ -25,7 +25,7 @@ module datapath(
     output logic [31:0] writeData,
     output logic pcSourceE,
     output logic zeroE,
-    output logic memoryWrite,
+    output logic memoryWriteM,
     output logic [31:0] instructionD,
 
     output logic [4:0] rs1D,
@@ -41,7 +41,6 @@ module datapath(
 );
 
 //Fetch internal signals:
-logic [31:0] instructionF;
 logic [31:0] pcF;
 logic [31:0] pcPlus4F;
 logic [31:0] pcNextF;
@@ -76,7 +75,6 @@ logic [31:0] aluResultE;
 
 //Memory internal signals:
 logic [1:0] resultSourceM;
-logic memoryWriteM;
 
 logic [31:0] aluResultM;
 logic [31:0] writeDataM;
@@ -111,7 +109,6 @@ programCounter pcRegister (
 );
 
 assign pc = pcF;
-assign instructionF = instruction;
 
 //F to D pipeline register
 if_To_id F_To_D(
@@ -250,7 +247,6 @@ ex_To_mem E_To_M(
     pcPlus4M
 );
 //M to W pipeline register
-assign memoryWrite = memoryWriteM;
 mem_To_wb M_To_W (
     clk,
     registerWriteM,

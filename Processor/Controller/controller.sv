@@ -1,21 +1,19 @@
 module controller(
     input logic [6:0] opcode,
-    input logic zero,
     input logic [2:0] funct3, 
     input logic funct7Bit5,
 
-    output logic pcSource,
     output logic [1:0] resultSource,
     output logic memoryWrite,
     output logic aluSource,
     output logic [1:0] immediateSource,
     output logic registerWrite,
     output logic [2:0] aluControl
+    output logic branch,
+    output logic jump
 );
 
 logic [1:0] aluOperation;
-logic branch;
-logic jump;
 
 aluDecoder aluDecoder(
     opcode[5], 
@@ -36,7 +34,5 @@ mainDecoder mainDecoder(
     memoryWrite, 
     aluOperation
 );
-
-assign pcSource = (branch & zero) | jump;
 
 endmodule

@@ -12,14 +12,15 @@ logic [31:0] instruction;
 logic [31:0] readData;
 
 processor processor(
-    clk,
-    reset,
-    instruction,
-    readData,
-    memoryWrite,
-    pc,
-    dataAddress,
-    writeData
+    .clk(clk),
+    .reset(reset),
+    .instructionF(instruction),
+    .readDataM(readData),
+
+    .memoryWriteM(memoryWrite),
+    .pc(pc),
+    .aluResultM(dataAddress),
+    .writeData(writeData)
 );
 
 dataMemory dataMemory(

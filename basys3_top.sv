@@ -18,7 +18,7 @@ top cpuSystem(
     .writeData(writeData)
 );
 
-always_ff @(posedge clk || posedge reset) begin
+always_ff @(posedge clk or posedge reset) begin
     if (reset)
         lastWriteData <= 32'b0;
     else if (memoryWrite)

@@ -8,7 +8,7 @@ module controller(
     output logic aluSource,
     output logic [1:0] immediateSource,
     output logic registerWrite,
-    output logic [2:0] aluControl
+    output logic [2:0] aluControl,
     output logic branch,
     output logic jump
 );

@@ -13,7 +13,7 @@ module datapath(
     input logic branchD,
     input logic jumpD,
 
-    input logic szetallF,
+    input logic stallF,
     input logic stallD,
     input logic flushD,
     input logic flushE,

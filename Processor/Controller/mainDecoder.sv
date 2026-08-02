@@ -28,7 +28,7 @@ always_comb case(op)
         immediateSource = 2'b01;
         aluSource = 1'b1;
         memoryWrite = 1'b1;
-        resultSource = 2'bxx;
+        resultSource = 2'b00;
         branch = 1'b0;
         jump = 1'b0;
         aluOperation = 2'b00;
@@ -50,7 +50,7 @@ always_comb case(op)
         immediateSource = 2'b10;
         aluSource = 1'b0;
         memoryWrite = 1'b0;
-        resultSource = 2'bxx;
+        resultSource = 2'b00;
         branch = 1'b1;
         jump = 1'b0;
         aluOperation = 2'b01;

@@ -9,7 +9,7 @@ module registerFile(
 
 logic [31:0] registerArray [31:0];
 
-always_ff @(posedge clk)
+always_ff @(negedge clk)
     if (writeEnable && (rdAddress != 5'b00000)) 
         registerArray[rdAddress] <= writeData;
 

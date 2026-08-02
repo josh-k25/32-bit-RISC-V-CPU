@@ -57,6 +57,13 @@ while (cycle < 200 && !programFinished) begin
 
 end
 
+    if (dut.dataMemory.memory[18] === 32'd5)
+        programFinished = 1'b1;
+
+    cycle = cycle + 1;
+
+end
+
 if (!programFinished)
     $fatal(1,
         "Program timed out. expected memory[18] = 5, got memory[18] = %0d.",
@@ -66,7 +73,7 @@ if (!programFinished)
 // vrify initial addi -> sw sequence eventually stored 5
 if (dut.dataMemory.memory[1] !== 32'd5)
     $fatal(1,
-        "Initial store failed! expected memory[1] = 5, got memory[1] = %0d.",dut.dataMemory.memory[1]
+        "Initial store failed. expected memory[1] = 5, got memory[1] = %0d.",dut.dataMemory.memory[1]
     );
 
 $display(

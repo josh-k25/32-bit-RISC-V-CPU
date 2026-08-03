@@ -57,16 +57,18 @@ always_ff @(posedge clk) begin
         registerWriteE <= registerWriteD;
         memWriteE <= memoryWriteD;
         aluControlE <= aluControlD;
-
-        rd1E <= rd1D;
-        rd2E <= rd2D;
-        pcE <= pcD;
-        rdE <= rdD;
-        immExtE <= immExtD;
-        pcPlus4E <= pcPlus4D;
-        rs1E <= rs1D;
-        rs2E <= rs2D;
     end
+end
+
+always_ff @(posedge clk) begin
+    rd1E <= rd1D;
+    rd2E <= rd2D;
+    pcE <= pcD;
+    rdE <= rdD;
+    immExtE <= immExtD;
+    pcPlus4E <= pcPlus4D;
+    rs1E <= rs1D;
+    rs2E <= rs2D;
 end
 
 endmodule

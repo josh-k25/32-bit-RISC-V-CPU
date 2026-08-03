@@ -1,7 +1,7 @@
 # 32-bit 5-Stage Pipelined RISC-V CPU
 
 A SystemVerilog implementation of a RISC-V processor supporting a subset of RV32I.
-The processor was initially implemented as a single-cycle CPU and later extended into a 5-stage pipelined architecture with forwarding, load-use hazard detection, stalling, and control-hazard flushing. The design is based on the processor architecture presented in *Digital Design and Computer Architecture: RISC-V Edition* by Harris and Harris. Verification is performed using SystemVerilog self-checking testbenches. The pipelined implementation preserves the original instruction set while allowing multiple instructions to execute concurrently across the five stages.
+The processor was initially implemented as a single-cycle CPU and later extended into a 5-stage pipelined architecture with forwarding, load-use hazard detection, stalling, and control-hazard flushing. The design is based on the processor architecture presented in *Digital Design and Computer Architecture: RISC-V Edition* by Harris and Harris. Verification is performed using SystemVerilog self-checking testbenches. The completed processor was also synthesized, implemented, and tested on a Digilent Basys 3 FPGA. The pipelined implementation includes the original instruction set while allowing multiple instructions to execute concurrently across the five stages.
 
 ## Supported Instructions
 
@@ -113,8 +113,9 @@ PCSrcE = (BranchE AND ZeroE) OR JumpE
 - Forwarding is used to resolve supported data hazards without stalling.
 - Load-use dependencies cause a one-cycle pipeline stall.
 - Instructions and data are accessed using word-aligned addresses.
+- The FPGA implementation operates the processor at 50 MHz using a generated clock derived from the Basys 3's 100 MHz oscillator.
 
-## Verification
+## Simulation Verification
 
 The project contains three self-checking testbenches.
 
@@ -151,6 +152,19 @@ dataMemory.memory[18] = 5
 x2                    = 1
 x3                    = 13
 x4                    = 5
+```
+## FPGA Implementation
+
+The processor was synthesized and implemented in Vivado for a Digilent Basys 3 FPGA using the Artix-7 XC7A35T device.
+
+The Basys 3 provides a 100 MHz input clock. Initial timing analysis at 100 MHz produced errors related to toming so a 50 MHz processor clock was therefore generated from the board's 100 MHz clock using the Vivado Clocking Wizard.
+
+For hardware testing, data memory is initialized with:
+
+```text
+memory[16] = 7
+memory[17] = -3
+memory[18] = 0
 ```
 
 ## Running the Integration Test

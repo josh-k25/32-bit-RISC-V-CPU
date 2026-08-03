@@ -7,7 +7,13 @@ module dataMemory(
     output logic [31:0] readData
 );
 
-logic [31:0] memory[255:0];
+logic [31:0] memory[0:255];
+
+initial begin
+    memory[16] = 32'd7;
+    memory[17] = 32'hFFFF_FFFD;
+    memory[18] = 32'd0;
+end
 
 assign readData = memory[address[31:2]];
 

@@ -3,11 +3,9 @@
 module controller_tb;
 
 logic [6:0] opcode;
-logic zero;
 logic [2:0] funct3; 
 logic funct7Bit5;
 
-logic pcSource;
 logic [1:0] resultSource;
 logic memoryWrite;
 logic aluSource;
@@ -15,39 +13,38 @@ logic [1:0] immediateSource;
 logic registerWrite;
 logic [2:0] aluControl;
 
-logic [1:0] aluOperation;
+logic branch;
+logic jump;
 
 controller dut(
     .opcode(opcode),
-    .zero(zero),
     .funct3(funct3),
     .funct7Bit5(funct7Bit5),
-    .pcSource(pcSource),
     .resultSource(resultSource),
     .memoryWrite(memoryWrite),
     .aluSource(aluSource),
     .immediateSource(immediateSource),
     .registerWrite(registerWrite),
-    .aluControl(aluControl)
+    .aluControl(aluControl),
     .branch(branch),
     .jump(jump)
 );
 
 initial begin
-//lw test (funt7 and zero are irrelevant)
+//lw test (funct7 is irrelevant)
 opcode     = 7'b0000011;
 funct3     = 3'b010;
 funct7Bit5 = 1'b0;
-zero       = 1'b0;
 #1;
 
 if (resultSource    !== 2'b01 ||
     memoryWrite     !== 1'b0  ||
-    pcSource        !== 1'b0  ||
     aluSource       !== 1'b1  ||
     registerWrite   !== 1'b1  ||
     immediateSource !== 2'b00 ||
-    aluControl      !== 3'b000
+    aluControl      !== 3'b000 ||
+    branch          !== 1'b0  ||
+    jump            !== 1'b0
     )
 
 begin
@@ -58,15 +55,15 @@ end
 opcode     = 7'b0100011;
 funct3     = 3'b010;
 funct7Bit5 = 1'b0;
-zero       = 1'b0;
 #1;
 
 if (memoryWrite     !== 1'b1  ||
-    pcSource        !== 1'b0  ||
     aluSource       !== 1'b1  ||
     registerWrite   !== 1'b0  ||
     immediateSource !== 2'b01 ||
-    aluControl      !== 3'b000)
+    aluControl      !== 3'b000 ||
+    branch          !== 1'b0  ||
+    jump            !== 1'b0)
 
 begin
     $fatal(1, "sw instruction test failed");
@@ -78,15 +75,15 @@ end
 opcode     = 7'b0110011;
 funct3     = 3'b000;
 funct7Bit5 = 1'b0;
-zero       = 1'b0;
 #1;
 
 if (resultSource    !== 2'b00 ||
     memoryWrite     !== 1'b0  ||
-    pcSource        !== 1'b0  ||
     aluSource       !== 1'b0  ||
     registerWrite   !== 1'b1  ||
-    aluControl      !== 3'b000)
+    aluControl      !== 3'b000 ||
+    branch          !== 1'b0  ||
+    jump            !== 1'b0)
 
 begin
     $fatal(1, "add instruction test failed");
@@ -96,15 +93,15 @@ end
 opcode     = 7'b0110011;
 funct3     = 3'b000;
 funct7Bit5 = 1'b1;
-zero       = 1'b0;
 #1;
 
 if (resultSource    !== 2'b00 ||
     memoryWrite     !== 1'b0  ||
-    pcSource        !== 1'b0  ||
     aluSource       !== 1'b0  ||
     registerWrite   !== 1'b1  ||
-    aluControl      !== 3'b001)
+    aluControl      !== 3'b001 ||
+    branch          !== 1'b0  ||
+    jump            !== 1'b0)
 
 begin
     $fatal(1, "sub instruction test failed");
@@ -114,16 +111,16 @@ end
 opcode     = 7'b0110011;
 funct3     = 3'b010;
 funct7Bit5 = 1'b0;
-zero       = 1'b0;
 #1;
 
 if (resultSource    !== 2'b00 ||
     memoryWrite     !== 1'b0  ||
-    pcSource        !== 1'b0  ||
     aluSource       !== 1'b0  ||
     registerWrite   !== 1'b1  ||
     immediateSource !== 2'bxx ||
-    aluControl      !== 3'b101)
+    aluControl      !== 3'b101 ||
+    branch          !== 1'b0  ||
+    jump            !== 1'b0)
 
 begin
     $fatal(1, "slt instruction test failed");
@@ -133,16 +130,16 @@ end
 opcode     = 7'b0110011;
 funct3     = 3'b110;
 funct7Bit5 = 1'b0;
-zero       = 1'b0;
 #1;
 
 if (resultSource    !== 2'b00 ||
     memoryWrite     !== 1'b0  ||
-    pcSource        !== 1'b0  ||
     aluSource       !== 1'b0  ||
     registerWrite   !== 1'b1  ||
     immediateSource !== 2'bxx ||
-    aluControl      !== 3'b011)
+    aluControl      !== 3'b011 ||
+    branch          !== 1'b0  ||
+    jump            !== 1'b0)
 
 begin
     $fatal(1, "or instruction test failed");
@@ -152,16 +149,16 @@ end
 opcode     = 7'b0110011;
 funct3     = 3'b111;
 funct7Bit5 = 1'b0;
-zero       = 1'b0;
 #1;
 
 if (resultSource    !== 2'b00 ||
     memoryWrite     !== 1'b0  ||
-    pcSource        !== 1'b0  ||
     aluSource       !== 1'b0  ||
     registerWrite   !== 1'b1  ||
     immediateSource !== 2'bxx ||
-    aluControl      !== 3'b010)
+    aluControl      !== 3'b010 ||
+    branch          !== 1'b0  ||
+    jump            !== 1'b0)
 
 begin
     $fatal(1, "and instruction test failed");
@@ -171,16 +168,16 @@ end
 opcode     = 7'b0010011;
 funct3     = 3'b000;
 funct7Bit5 = 1'b0;
-zero       = 1'b0;
 #1;
 
 if (resultSource    !== 2'b00 ||
     memoryWrite     !== 1'b0  ||
-    pcSource        !== 1'b0  ||
     aluSource       !== 1'b1  ||
     registerWrite   !== 1'b1  ||
     immediateSource !== 2'b00 ||
-    aluControl      !== 3'b000)
+    aluControl      !== 3'b000 ||
+    branch          !== 1'b0  ||
+    jump            !== 1'b0)
 
 begin
     $fatal(1, "addi instruction test failed");
@@ -190,16 +187,16 @@ end
 opcode     = 7'b0010011;
 funct3     = 3'b010;
 funct7Bit5 = 1'b0;
-zero       = 1'b0;
 #1;
 
 if (resultSource    !== 2'b00 ||
     memoryWrite     !== 1'b0  ||
-    pcSource        !== 1'b0  ||
     aluSource       !== 1'b1  ||
     registerWrite   !== 1'b1  ||
     immediateSource !== 2'b00 ||
-    aluControl      !== 3'b101)
+    aluControl      !== 3'b101 ||
+    branch          !== 1'b0  ||
+    jump            !== 1'b0)
 
 begin
     $fatal(1, "slti instruction test failed");
@@ -209,16 +206,16 @@ end
 opcode     = 7'b0010011;
 funct3     = 3'b110;
 funct7Bit5 = 1'b0;
-zero       = 1'b0;
 #1;
 
 if (resultSource    !== 2'b00 ||
     memoryWrite     !== 1'b0  ||
-    pcSource        !== 1'b0  ||
     aluSource       !== 1'b1  ||
     registerWrite   !== 1'b1  ||
     immediateSource !== 2'b00 ||
-    aluControl      !== 3'b011)
+    aluControl      !== 3'b011 ||
+    branch          !== 1'b0  ||
+    jump            !== 1'b0)
 
 begin
     $fatal(1, "ori instruction test failed");
@@ -228,69 +225,51 @@ end
 opcode     = 7'b0010011;
 funct3     = 3'b111;
 funct7Bit5 = 1'b0;
-zero       = 1'b0;
 #1;
 
 if (resultSource    !== 2'b00 ||
     memoryWrite     !== 1'b0  ||
-    pcSource        !== 1'b0  ||
     aluSource       !== 1'b1  ||
     registerWrite   !== 1'b1  ||
     immediateSource !== 2'b00 ||
-    aluControl      !== 3'b010)
+    aluControl      !== 3'b010 ||
+    branch          !== 1'b0  ||
+    jump            !== 1'b0)
 
 begin
     $fatal(1, "andi instruction test failed");
 end
 
-//beq (not taken)
+//beq
 opcode     = 7'b1100011;
 funct3     = 3'b000;
 funct7Bit5 = 1'b0;
-zero       = 1'b0;
 #1;
 
 if (memoryWrite     !== 1'b0  ||
-    pcSource        !== 1'b0 ||
-    aluSource       !== 1'b0 ||
-    registerWrite   !== 1'b0 ||
+    aluSource       !== 1'b0  ||
+    registerWrite   !== 1'b0  ||
     immediateSource !== 2'b10 ||
-    aluControl      !== 3'b001)
+    aluControl      !== 3'b001 ||
+    branch          !== 1'b1  ||
+    jump            !== 1'b0)
 
 begin
-    $fatal(1, "beq (not taken) instruction test failed");
-end
-
-//beq (taken)
-opcode     = 7'b1100011;
-funct3     = 3'b000;
-funct7Bit5 = 1'b0;
-zero       = 1'b1;
-#1;
-
-if (memoryWrite     !== 1'b0 ||
-    pcSource        !== 1'b1 ||
-    aluSource       !== 1'b0 ||
-    registerWrite   !== 1'b0 ||
-    immediateSource !== 2'b10 ||
-    aluControl      !== 3'b001)
-
-begin
-    $fatal(1, "beq (taken) instruction test failed");
+    $fatal(1, "beq instruction test failed");
 end
 
 //jal 
 opcode     = 7'b1101111;
 funct3     = 3'b000;
 funct7Bit5 = 1'b0;
-zero       = 1'b0;
 #1;
 
 if (resultSource    !== 2'b10 ||
     memoryWrite     !== 1'b0  ||
-    pcSource        !== 1'b1  ||
     registerWrite   !== 1'b1  ||
-    immediateSource !== 2'b11)
+    immediateSource !== 2'b11 ||
+    branch          !== 1'b0  ||
+    jump            !== 1'b1)
 
 begin
     $fatal(1, "jal instruction test failed");

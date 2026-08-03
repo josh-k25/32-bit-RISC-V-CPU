@@ -1,15 +1,15 @@
 # 32-bit 5-Stage Pipelined RISC-V CPU
 
 A SystemVerilog implementation of a RISC-V processor supporting a subset of RV32I.
-The processor was initially implemented as a single-cycle CPU and was later extended into a 5-stage pipelined architecture with forwarding, load-use hazard detection, stalling, and control-hazard flushing. The design is based on the architecture from Digital Design and Computer Architecture RISC-V edition by Harris and Harris, and verified with SystemVerilog self-checking testbenches. The pipelined implementation preserves the original instruction set while allowing multiple instructions to execute concurrently across the five stages.
+The processor was initially implemented as a single-cycle CPU and later extended into a 5-stage pipelined architecture with forwarding, load-use hazard detection, stalling, and control-hazard flushing. The design is based on the processor architecture presented in *Digital Design and Computer Architecture: RISC-V Edition* by Harris and Harris. Verification is performed using SystemVerilog self-checking testbenches. The pipelined implementation preserves the original instruction set while allowing multiple instructions to execute concurrently across the five stages.
 
 ## Supported Instructions
 
 | Category | Instructions |
 |---|---|
 | Arithmetic | `add`, `sub`, `addi` |
-| Logical | `and`, `or` |
-| Comparison | `slt` |
+| Logical | `and`, `or`, `andi`, `ori` |
+| Comparison | `slt`, `slti` |
 | Memory | `lw`, `sw` |
 | Control Flow | `beq`, `jal` |
 
@@ -39,7 +39,7 @@ The design is divided into three main sections:
 The controller is further divided into:
 
 - `mainDecoder`: Generates the main control signals from the opcode.
-- `aluDecoder`: Selects the ALU operation using the instruction fields and `ALUOp`.
+- `aluDecoder`: Selects the ALU operation using `aluOperation`, `funct3`, the opcode, and the relevant `funct7` bit.
 
 ## Pipeline Operation
 
@@ -48,11 +48,11 @@ Multiple instructions are executed concurrently, with each instruction occupying
 For example:
 
 ```text
-Cycle       1    2    3    4    5
-----------------------------------
+Cycle          1    2    3    4    5    6    7
+------------------------------------------------
 Instruction 1  IF   ID   EX   MEM  WB
-Instruction 2       IF   ID   EX   MEM
-Instruction 3            IF   ID   EX
+Instruction 2       IF   ID   EX   MEM  WB
+Instruction 3            IF   ID   EX   MEM  WB
 ```
 Under normal operation, a new instruction enters the pipeline every clock cycle.
 
@@ -90,10 +90,10 @@ Branches and jumps are resolved in the Execute stage.
 When a branch is taken or a jump occurs:
 
 - the program counter is redirected to the target address
-- incorrect instructions fetched along the sequential path are flushed
-- the ID and EX pipeline state are cleared as required 
+- the wrong-path instruction in the IF/ID register is flushed
+- the wrong-path instruction entering the EX stage is converted into a bubble
 
-The branch decision is generated using:
+The control-transfer decision is generated using:
 
 ```text
 PCSrcE = (BranchE AND ZeroE) OR JumpE
@@ -143,20 +143,22 @@ The program reads the values `7` and `-3` from data memory, processes them, and 
 
 The integration test also verifies that an earlier dependent store correctly writes `5` to byte address `0x04`.
 
-The final checks are:
+The final expected results are:
 
-`dataMemory.memory[1] = 5`
-
-`dataMemory.memory[18] = 5`
+```text
+dataMemory.memory[1]  = 5
+dataMemory.memory[18] = 5
+x2                    = 1
+x3                    = 13
+x4                    = 5
+```
 
 ## Running the Integration Test
 
 The project can be compiled from the repository root using Icarus Verilog:
 
 ```bash
-find Processor/Controller Processor/Datapath Processor/Memory -name '*.sv' -print0 | \
-xargs -0 iverilog -g2012 -Wall -s top_tb -o top_tb.vvp \
-Processor/processor.sv top.sv Processor/Testbenches/top_tb.sv
+iverilog -g2012 -Wall -s top_tb -o top_tb.vvp $sourceFiles Processor/processor.sv top.sv Processor/Testbenches/top_tb.sv
 ```
 
 Run the compiled simulation with: 

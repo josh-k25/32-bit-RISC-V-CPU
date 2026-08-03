@@ -1,69 +1,116 @@
 `timescale 1ns/1ps
 
-module datapath_tb;
+module datapathPipelined_tb;
 
 logic clk;
 logic reset;
-
 logic [31:0] instruction;
-logic [31:0] readData;
+logic [31:0] readDataM;
 
-logic pcSource;
-logic aluSource;
-logic [1:0] resultSource;
-logic [1:0] immediateSource;
-logic registerWrite;
-logic [2:0] aluControl;
+logic aluSourceD;
+logic [1:0] resultSourceD;
+logic [1:0] immediateSourceD;
+logic registerWriteD;
+logic [2:0] aluControlD;
+logic memoryWriteD;
+logic branchD;
+logic jumpD;
+
+logic stallF;
+logic stallD;
+logic flushD;
+logic flushE;
+logic [1:0] forward1;
+logic [1:0] forward2;
 
 logic [31:0] pc;
 logic [31:0] aluResult;
 logic [31:0] writeData;
-logic zero;
+logic pcSourceE;
+logic zeroE;
+logic memoryWrite;
+logic [31:0] instructionD;
 
-logic [31:0] oldPC;
+logic [4:0] rs1D;
+logic [4:0] rs2D;
+logic [4:0] rs1E;
+logic [4:0] rs2E;
+logic [4:0] rdE;
+logic [4:0] rdM;
+logic [4:0] rdW;
+logic [1:0] resultSourceE;
+logic registerWriteM;
+logic registerWriteW;
 
 datapath dut(
     .clk(clk),
     .reset(reset),
-    .instruction(instruction),
-    .readData(readData),
+    .instructionF(instruction)
+    .readDataM(readDataM),
+    
+    .aluSourceD(aluSourceD),
+    .resultSourceD(resultSourceD),
+    .immediateSourceD(immediateSourceD),
+    .registerWriteD(registerWriteD),
+    .aluControlD(aluControlD),
+    .memoryWriteD(memoryWriteD),
+    .branchD(branchD),
+    .jumpD(jumpD),
 
-    .pcSource(pcSource),
-    .aluSource(aluSource),
-    .resultSource(resultSource),
-    .immediateSource(immediateSource),
-    .registerWrite(registerWrite),
-    .aluControl(aluControl),
+    .stallF(stallF),
+    .stallD(stallD),
+    .flushD(flushD),
+    .flushE(flushE),
+    .forward1(forward1),
+    .forward2(forward2),
 
     .pc(pc),
     .aluResult(aluResult),
     .writeData(writeData),
-    .zero(zero)
+    .pcSourceE(pcSourceE),
+    .zeroE(zeroE),
+    .memoryWriteM(memoryWrite)
+    .instructionD(instructionD),
+
+    .rs1D(rs1D),
+    .rs2D(rs2D),
+    .rs1E(rs1E),
+    .rs2E(rs2E),
+    .rdE(rdE),
+    .rdM(rdM),
+    .rdW(rdW),
+    .resultSourceE(resultSourceE),
+    .registerWriteM(registerWriteM),
+    .registerWriteW(registerWriteW)
 );
 
 always #5 clk = ~clk;
-
 initial begin
+    clk              = 0;
+    reset            = 1;
+    instruction      = 32'b0;
+    readDataM        = 32'b0;
 
-clk = 0;
-reset = 0;
-instruction = 32'b0;
-readData = 32'b0;
+    aluSourceD       = 0;
+    resultSourceD    = 2'b00;
+    immediateSourceD = 2'b00;
+    registerWriteD   = 0;
+    aluControlD      = 3'b000;
+    memoryWriteD     = 0;
+    branchD          = 0;
+    jumpD            = 0;
 
-pcSource = 1'b0;
-aluSource = 1'b0;
-resultSource = 2'b0;
-immediateSource = 2'b0;
-registerWrite = 1'b0;
-aluControl = 3'b0;
+    stallF           = 0;
+    stallD           = 0;
+    flushD           = 0;
+    flushE           = 0;
+    forward1         = 2'b00;
+    forward2         = 2'b00;
 
-// assert reset and check if pc = 0; 
-// first set reset to 1 and deassert it so that pc sets to 0, then let pc count up a few times
-// test reset after
+    #12;
+    reset = 0;
 
-reset = 1;
-#1;
-reset = 0;
+//test that reset sets pc to 0
 @(posedge clk);
 @(posedge clk);
 @(posedge clk);
@@ -73,295 +120,366 @@ reset = 1'b1;
 #1;
 
 if (pc !== 32'd0)
-$fatal(1, 
-    "Reset test failed."
+    $fatal(1, 
+        "Reset test failed."
 );
 
 reset = 1'b0;
-
-//check that pc advances by 4 every clock edge
-pcSource = 1'b0;
 #1;
+
+//check that pc increments by 4
+@(posedge clk);
+#1;
+
+if (pc !== 32'd4)
+    $fatal(1,
+        "pc increment by 4 failed. "
+);
+
+//check that stallF freezes the pc 
+branchD = 1'b1;
+jumpD = 1'b1;
+resultSourceD = 2'b10;
+aluSourceD = 1'b1;
+registerWriteD = 1'b1;
+memoryWriteD = 1'b1;
+aluControlD = 3'b101;
+#1;
+
+stallF = 1'b1;
+
 
 @(posedge clk);
 #1;
 
 if (pc !== 32'd4)
-$fatal(1,
-    "PC plus 4 test failed."
+    $fatal(1,
+        "stallF pc freeze failed."
 );
 
+stallF = 1'b0;
 
-// addi x4, x0, 12
-// sets the base address register for lw and sw
-instruction     = 32'b000000001100_00000_000_00100_0010011;
-resultSource    = 2'b00;
-pcSource        = 1'b0;
-aluSource       = 1'b1;
-registerWrite   = 1'b1;
-immediateSource = 2'b00;
-aluControl      = 3'b000;
+
+//check that instructionF passed to instructionD on rising clock edge
+instruction = 32'h12345678;
+
+@(posedge clk);
 #1;
 
-if (aluResult !== 32'd12)
+if (instructionD !== 32'h12345678)
     $fatal(1,
-        "Positive addi failed: expected 12, got %0d", aluResult
+        "instructionF to instructionD failed."
+);
+
+//check that stallD holds instructionD
+
+stallD = 1'b1;
+instruction = 32'h87654321;
+
+@(posedge clk);
+#1;
+
+if (instructionD !== 32'h12345678)
+    $fatal(1,
+        "instructionD stall failed."
+);
+
+stallD = 1'b0;
+
+//check that flushD clears if/id pipeline register
+flushD = 1'b1;
+
+@(posedge clk);
+#1;
+
+if (dut.instructionD !== 32'b0)
+    $fatal(1,
+    "instructionD flush failed."
+);
+
+if (dut.pcD !== 32'b0)
+    $fatal(1, 
+    "pcD flush failed."
+);
+
+if (dut.pcPlus4D !== 32'b0)
+    $fatal(1,
+    "pcPlus4D flush failed."
+);
+
+flushD = 1'b0;
+
+//check that flushE clearas the id/ex pipeline register
+
+flushE = 1'b1;
+
+@(posedge clk);
+#1;
+
+if (dut.branchE !== 1'b0)
+    $fatal(1, 
+        "flushE failed: branchE was not cleared"
+);
+
+if (dut.jumpE !== 1'b0)
+    $fatal(1, 
+        "flushE failed: jumpE was not cleared"
+);
+
+if (resultSourceE !== 2'b00)
+    $fatal(1, 
+        "flushE failed: resultSourceE was not cleared"
+);
+
+if (dut.aluSourceE !== 1'b0)
+    $fatal(1, 
+        "flushE failed: aluSourceE was not cleared"
+);
+
+if (dut.registerWriteE !== 1'b0)
+    $fatal(1, 
+        "flushE failed: registerWriteE was not cleared"
+);
+
+if (dut.memoryWriteE !== 1'b0)
+    $fatal(1, 
+        "flushE failed: memoryWriteE was not cleared"
+);
+
+if (dut.aluControlE !== 3'b000)
+    $fatal(1, 
+        "flushE failed: aluControlE was not cleared"
+);
+
+flushE = 1'b0;
+
+branchD = 1'b0;
+jumpD = 1'b0;
+resultSourceD = 2'b00;
+aluSourceD = 1'b0;
+registerWriteD = 1'b0;
+memoryWriteD = 1'b0;
+aluControlD = 3'b000;
+
+//test alu source mux 1
+force dut.aluSourceE = 0;
+stallF = 1'b0;
+stallD = 1'b0;
+flushD = 1'b0;
+flushE = 1'b0;
+forward1 = 2'b00;
+forward2 = 2'b00;
+
+force dut.rd1E = 32'd6;
+force dut.rd2E = 32'd4;
+force dut.immExtE = 32'd3;
+
+force dut.aluControlE = 3'b000;
+#1;
+
+if (dut.source1E !== 32'd6)
+    $fatal(1,
+        "source1E is incorrect (aluSource = 0)."
+);
+
+if (dut.source2E !== 32'd4)
+    $fatal(1,
+        "source2E is incorrect (aluSource = 0)."
+);
+
+if (dut.aluResultE !== 32'd10)
+    $fatal(1, 
+        "alu source mux test 1 failed (aluSource = 0)."
+);
+
+force dut.aluSourceE = 1'b1;
+#1;
+
+if (dut.source2E !== 32'd3)
+    $fatal(1,
+        "source2E is incorrect (aluSource = 1)."
+);
+
+if (dut.aluResultE !== 32'd9)
+    $fatal(1, 
+        "alu source mux test 2 failed (aluSource = 1)."
+);
+
+release dut.rd1E;
+release dut.rd2E;
+release dut.immExtE;
+release dut.aluControlE;
+release dut.aluSourceE;
+
+
+//test forward1 and 2
+force dut.rd1E = 32'd1;
+force dut.rd2E = 32'd2;
+force dut.resultW = 32'd5;
+force dut.aluResultM = 32'd9;
+
+forward1 = 2'b00;
+#1;
+
+if (dut.source1E !== 32'd1)
+    $fatal(1,
+    "source1E forward (00) failed."
+);
+
+forward1 = 2'b01;
+#1;
+
+if (dut.source1E !== 32'd5)
+    $fatal(1,
+    "source1E forward (01) failed."
+);
+
+forward1 = 2'b10;
+#1;
+
+if (dut.source1E !== 32'd9)
+    $fatal(1,
+        "source1E forward (10) failed."
+);
+
+forward2 = 2'b00;
+#1;
+
+if (dut.writeDataE !== 32'd2)
+    $fatal(1,
+        "writeDataE forward (00) failed."
+);
+
+forward2 = 2'b01;
+#1;
+
+if (dut.writeDataE !== 32'd5)
+    $fatal(1,
+        "writeDataE forward (01) failed."
+);
+
+forward2 = 2'b10;
+#1;
+
+if (dut.writeDataE !== 32'd9)
+    $fatal(1,
+        "writedata forward (10) failed."
+);
+
+release dut.rd1E;
+release dut.rd2E;
+release dut.aluControlE;
+release dut.aluSourceE;
+release dut.resultW;
+release dut.aluResultM;
+
+forward1 = 2'b00;
+forward2 = 2'b00;
+
+//E to M pipeline register test
+force dut.aluResultE = 32'd10;
+force dut.writeDataE = 32'd20;
+force dut.rdE = 5'b00101;
+force dut.registerWriteE = 1'b1;
+force dut.memoryWriteE = 1'b1;
+force dut.resultSourceE = 2'b01;
+force dut.pcPlus4E = 32'd100;
+
+@(posedge clk);
+#1;
+
+if (dut.aluResultM !== 32'd10)
+    $fatal(1, 
+        "aluResultE to aluResultM failed."
+);
+
+if (dut.writeDataM !== 32'd20)
+    $fatal(1, 
+        "writeDataE to writeDataM failed."
     );
 
-
-// writes 12 into x4
-@(posedge clk);
-#1;
-
-if (dut.registerFile.registerArray[4] !== 32'd12)
-$fatal(1,
-    "addi failed: expected 12, got %0d", dut.registerFile.registerArray[4]
+if (rdM !== 5'd5)
+    $fatal(1, 
+        "rdE to rdM failed."
 );
 
-
-// addi x3, x0, -12
-// sets the data register that sw will store
-instruction     = 32'b111111110100_00000_000_00011_0010011;
-resultSource    = 2'b00;
-pcSource        = 1'b0;
-aluSource       = 1'b1;
-registerWrite   = 1'b1;
-immediateSource = 2'b00;
-aluControl      = 3'b000;
-#1;
-
-if (aluResult !== 32'hFFFF_FFF4)
-    $fatal(1,
-        "Negative addi failed: expected -12, got %0d", $signed(aluResult)
-    );
-
-// Writes -12 into x3
-@(posedge clk);
-#1;
-
-//lw 
-readData = 32'h0000_00F0;
-instruction = 32'b000000000100_00000_010_00110_0000011;
-resultSource    = 2'b01;
-pcSource        = 1'b0;
-aluSource       = 1'b1;
-registerWrite   = 1'b1;
-immediateSource = 2'b00;
-aluControl      = 3'b000;
-#1;
-
-// x0 contains 0 and the immediate is 4
-if (aluResult !== 32'd4)
-$fatal(1, 
-    "lw instruction failed: expected address 4, got %0d", aluResult
+if (registerWriteM !== 1'b1)
+    $fatal(1, 
+        "registerWriteE to registerWriteM failed."
 );
+
+if (dut.memoryWriteM !== 1'b1)
+    $fatal(1, 
+        "memoryWriteE to memoryWriteM failed."
+);
+
+if (dut.resultSourceM !== 2'b01)
+    $fatal(1, 
+        "resultSourceE to resultSourceM failed."
+);
+
+if (dut.pcPlus4M !== 32'd100)
+    $fatal(1, 
+        "pcPlus4E to pcPlus4M failed."
+);
+
+release dut.aluResultE;
+release dut.writeDataE;
+release dut.rdE;
+release dut.registerWriteE;
+release dut.memoryWriteE;
+release dut.resultSourceE;
+release dut.pcPlus4E;
+
+//M to W pipeline register test 
+
+readDataM = 32'd50;
 
 @(posedge clk);
 #1;
 
-if (dut.registerFile.registerArray[6] !== readData)
-$fatal(1,
-    "lw writeback failed: expected x6 = %0d, got %0d",
-    readData,
-    dut.registerFile.registerArray[6]
+if (dut.aluResultW !== 32'd10)
+    $fatal(1, 
+        "aluResultM to aluResultW failed."
 );
 
-// sw x3, 4(x4)
-@(negedge clk);
-instruction = 32'b0000000_00011_00100_010_00100_0100011;
-pcSource        = 1'b0;  
-aluSource       = 1'b1;  
-registerWrite   = 1'b0;  
-immediateSource = 2'b01; 
-aluControl      = 3'b000;
-#1;
-
-if (aluResult !== 32'd16)
-$fatal(1, 
-    "sw instruction failed: expected address 16, got %0d", aluResult
+if (dut.readDataW !== 32'd50)
+    $fatal(1, 
+        "readDataM to readDataW failed."
 );
 
-if (writeData !== 32'hFFFF_FFF4)
-$fatal(1, 
-    "sw instruction failed: expected writeData -12, got %0d", $signed(writeData)
+if (rdW !== 5'd5)
+    $fatal(1, 
+        "rdM to rdW failed."
 );
 
-//beq not taken (compared x0 to x4)
-instruction = 32'b0000000_00000_00100_000_00110_1100011;
-pcSource        = 1'b0;
-aluSource       = 1'b0;
-registerWrite   = 1'b0;
-immediateSource = 2'b10;
-aluControl      = 3'b001;
-#1;
-
-if (aluResult !== 32'd12 || zero !== 1'b0)
-    $fatal(1,
-    "beq alu result or zero failed."
+if (registerWriteW !== 1'b1)
+    $fatal(1, 
+        "registerWriteM to registerWriteW failed."
 );
 
-oldPC = pc;
-
-@(posedge clk);
-#1;
-
-if (pc !== oldPC + 32'd4)
-    $fatal(1,
-        "beq not-taken failed: expected PC %0d, got %0d", oldPC + 32'd4, pc
-    );
-
-//beq x4, x4, 8
-//comparing x4 against itself means the branch is taken
-instruction = 32'b0000000_00100_00100_000_01000_1100011;
-resultSource    = 2'b00; 
-pcSource        = 1'b1;
-aluSource       = 1'b0;
-registerWrite   = 1'b0;
-immediateSource = 2'b10;
-aluControl      = 3'b001;
-#1;
-
-@(negedge clk);
-if (aluResult !== 32'd0 || zero !== 1'b1)
-    $fatal(1,
-    "beq taken comparison failed: aluResult = %0d, zero = %b", aluResult, zero
+if (dut.resultSourceW !== 2'b01)
+    $fatal(1, 
+        "resultSourceM to resultSourceW failed."
 );
 
-oldPC = pc;
-
-@(posedge clk);
-#1;
-
-// cncoded b-type immediate is 8
-if (pc !== oldPC + 32'd8)
-$fatal(1,
-    "beq taken failed: expected PC %0d, got %0d", oldPC + 32'd8, pc
+if (dut.pcPlus4W !== 32'd100)
+    $fatal(1, 
+        "pcPlus4M to pcPlus4W failed."
 );
 
-//beq x4, x4, -8
-//comparing x4 against itself means the branch is taken (backwards)
-instruction = 32'b1111111_00100_00100_000_11001_1100011;
-resultSource    = 2'b00; 
-pcSource        = 1'b1;
-aluSource       = 1'b0;
-registerWrite   = 1'b0;
-immediateSource = 2'b10;
-aluControl      = 3'b001;
-#1;
-
-@(negedge clk);
-if (aluResult !== 32'd0 || zero !== 1'b1)
-    $fatal(1,
-    "beq taken (backwards) comparison failed: aluResult = %0d, zero = %b", aluResult, zero
+// Since resultSourceW = 01, writeback should select memory data
+if (dut.resultW !== 32'd50)
+    $fatal(1, 
+        "Writeback mux failed to select readDataW."
 );
 
-oldPC = pc;
-
-@(posedge clk);
-#1;
-
-// cncoded b-type immediate is -8
-if (pc !== oldPC - 32'd8)
-$fatal(1,
-    "beq taken (backwards) failed: expected PC %0d, got %0d", oldPC - 32'd8, pc
-);
-
-//jal 
-// jal x5, target ( PC + 8 )
-instruction = 32'b00000000100000000000_00101_1101111;
-resultSource    = 2'b10;
-pcSource        = 1'b1;
-registerWrite   = 1'b1;
-immediateSource = 2'b11;
-#1;
-
-oldPC = pc;
-
-@(posedge clk);
-#1;
-
-if (pc !== oldPC + 32'd8 )
-$fatal(1,
-    "jal PC failed: expected %0d, got %0d", oldPC + 32'd8, pc
-);
-
-if (dut.registerFile.registerArray[5] !== oldPC + 32'd4)
-$fatal(1,
-        "jal link register failed: expected x5 = %0d, got %0d", oldPC + 32'd4, dut.registerFile.registerArray[5]
-);
-
-//write to x0
-instruction = 32'b000000000101_00000_000_00000_0010011;
-resultSource    = 2'b00;
-pcSource        = 1'b0;
-aluSource       = 1'b1;
-registerWrite   = 1'b1;
-immediateSource = 2'b00;
-aluControl      = 3'b000;
-#1;
-
-oldPC = pc;
-
-@(posedge clk);
-#1;
-
-if (pc !== oldPC + 32'd4)
-$fatal(1,
-    "addi x0 PC failed: expected %0d, got %0d", oldPC + 32'd4, pc
-);
-
-//alu source selection 
-//initialize x1 = 5
-instruction     = 32'b000000000101_00000_000_00001_0010011;
-resultSource    = 2'b00;
-pcSource        = 1'b0;
-aluSource       = 1'b1;
-registerWrite   = 1'b1;
-immediateSource = 2'b00;
-aluControl      = 3'b000;
-#1;
-
-
-if (aluResult !== 32'd5)
-$fatal(1,
-    "x1 setup failed: expected ALU result 5, got %0d",aluResult
-);
-
-@(posedge clk);
-#1;
-
-//addi x2, x1, 3
-//expected: 5 + 3 = 8
-@(negedge clk);
-instruction     = 32'b000000000011_00001_000_00010_0010011;
-aluSource       = 1'b1;
-#1;
-
-if (aluResult !== 32'd8)
-$fatal(1,
-    "consecutive addi failed: expected 8, got %0d",aluResult
-);
-
-@(posedge clk);
-#1;
-
-//add x3, x1, x2
-//expected: 5 + 8 = 13
-instruction     = 32'b0000000_00010_00001_000_00011_0110011;
-aluSource       = 1'b0;
-#1;
-
-if (aluResult !== 32'd13)
-$fatal(1,
-    "register ALU source failed: expected 13, got %0d", aluResult
-);
-
-@(posedge clk);
-#1;
-
-$display("Datapath_tb tests passed.");
+$display("Datapath tests passed.");
 $finish;
 
+
 end
+
+
 
 endmodule

@@ -4,7 +4,7 @@ module instructionMemory(
     output logic [31:0] readData
 );
 
-logic [31:0] dataArray [255:0];
+logic [31:0] dataArray [0:255];
 
 
 initial begin

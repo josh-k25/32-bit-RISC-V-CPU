@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module datapathPipelined_tb;
+module datapath_tb;
 
 logic clk;
 logic reset;
@@ -45,7 +45,7 @@ logic registerWriteW;
 datapath dut(
     .clk(clk),
     .reset(reset),
-    .instructionF(instruction)
+    .instructionF(instruction),
     .readDataM(readDataM),
     
     .aluSourceD(aluSourceD),
@@ -69,7 +69,7 @@ datapath dut(
     .writeData(writeData),
     .pcSourceE(pcSourceE),
     .zeroE(zeroE),
-    .memoryWriteM(memoryWrite)
+    .memoryWriteM(memoryWrite),
     .instructionD(instructionD),
 
     .rs1D(rs1D),

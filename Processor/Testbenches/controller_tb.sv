@@ -16,8 +16,6 @@ logic registerWrite;
 logic [2:0] aluControl;
 
 logic [1:0] aluOperation;
-logic branch;
-logic jump;
 
 controller dut(
     .opcode(opcode),
@@ -31,6 +29,8 @@ controller dut(
     .immediateSource(immediateSource),
     .registerWrite(registerWrite),
     .aluControl(aluControl)
+    .branch(branch),
+    .jump(jump)
 );
 
 initial begin

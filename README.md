@@ -121,7 +121,7 @@ The project contains three self-checking testbenches.
 | Testbench | Purpose |
 |---|---|
 | `controller_tb.sv` | Verifies instruction decoding and generated control signals |
-| `datapathPipelined_tb.sv` | Verifies pipeline registers, forwarding paths, stalls, flushes, ALU behavior, and writeback selection |
+| `datapath_tb.sv` | Verifies pipeline registers, forwarding paths, stalls, flushes, ALU behavior, and writeback selection |
 | `top_tb.sv` | Runs a complete program through the processor, instruction memory, and data memory |
 
 The testbenches use `$fatal` to stop the simulation when an incorrect result is detected.
